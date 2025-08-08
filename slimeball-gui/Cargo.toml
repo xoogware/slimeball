@@ -1,0 +1,12 @@
+[package]
+name = "slimeball"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+color-eyre = "0.6.5"
+eframe = { version = "0.32.0", default-features = false, features = ["accesskit", "default_fonts", "wayland", "web_screen_reader", "wgpu", "x11"] }
+fastnbt = "2.5.0"
+rfd = "0.15.4"
+tracing = { version = "0.1.41", features = ["release_max_level_info", "max_level_debug"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
