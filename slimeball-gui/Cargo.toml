@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+slimeball-lib = { path = "../slimeball-lib" }
 color-eyre = "0.6.5"
 eframe = { version = "0.32.0", default-features = false, features = ["accesskit", "default_fonts", "wayland", "web_screen_reader", "wgpu", "x11"] }
 fastnbt = "2.5.0"

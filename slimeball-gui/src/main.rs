@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::{fs::File, io::BufReader, path::PathBuf};
 
-use eframe::egui::{self, Color32, Frame};
+use eframe::egui::{self, Frame};
 use mimalloc::MiMalloc;
 use rfd::FileDialog;
 use tracing::Level;
@@ -13,15 +13,17 @@ extern crate tracing;
 static GLOBAL: MiMalloc = MiMalloc;
 
 mod anvil;
+mod viewer;
 
 fn main() {
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().pretty())
         .with(
             EnvFilter::builder()
                 .with_default_directive(Level::INFO.into())
                 .from_env_lossy(),
-        );
+        )
+        .init();
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
@@ -32,14 +34,20 @@ fn main() {
     .unwrap();
 }
 
+#[derive(Clone)]
+enum World {
+    Slime(PathBuf),
+    Anvil(PathBuf),
+}
+
 #[derive(Default)]
 struct SlimeballGui {
-    file: Option<PathBuf>,
+    world: Option<World>,
 }
 
 impl eframe::App for SlimeballGui {
     fn update(&mut self, ui: &egui::Context, frame: &mut eframe::Frame) {
-        match self.file {
+        match self.world {
             None => self.show_welcome(ui),
             Some(_) => self.show_main(ui),
         }
@@ -59,8 +67,25 @@ impl SlimeballGui {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.label("No world selected");
-                if ui.button("Open a world...").clicked() {
-                    self.file = FileDialog::new().pick_folder();
+
+                if ui.button("Open Anvil world").clicked() {
+                    self.world = FileDialog::new().pick_folder().map(World::Anvil);
+                }
+
+                if ui.button("Open Slime world").clicked() {
+                    let path = FileDialog::new()
+                        .add_filter("Slime worlds", &["slime"])
+                        .pick_file();
+                    self.world = path.clone().map(World::Slime);
+
+                    if let Some(path) = path {
+                        let file = File::open(path).unwrap();
+                        let mut buf = BufReader::new(file);
+                        match slimeball_lib::SlimeWorld::deserialize(&mut buf) {
+                            Ok(v) => debug!("{:#?}", v),
+                            Err(why) => error!("{:?}", why),
+                        }
+                    }
                 }
             });
         });
@@ -68,7 +93,11 @@ impl SlimeballGui {
 
     fn show_main(&mut self, ui: &egui::Context) {
         // asserted Some in match arm for render
-        let path = self.file.as_ref().unwrap();
+        let world = self.world.as_ref().unwrap();
+        let world_path = match world {
+            World::Anvil(p) => p,
+            World::Slime(p) => p,
+        };
 
         egui::TopBottomPanel::top("top_panel")
             .resizable(false)
@@ -83,6 +112,6 @@ impl SlimeballGui {
                 });
             });
 
-        egui::CentralPanel::default().show(ui, |ui| ui.heading(path.to_string_lossy()));
+        egui::CentralPanel::default().show(ui, |ui| ui.heading(world_path.to_string_lossy()));
     }
 }
