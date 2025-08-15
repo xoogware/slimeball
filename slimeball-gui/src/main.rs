@@ -13,6 +13,7 @@ extern crate tracing;
 static GLOBAL: MiMalloc = MiMalloc;
 
 mod anvil;
+mod proto;
 mod viewer;
 
 fn main() {
@@ -82,7 +83,8 @@ impl SlimeballGui {
                         let file = File::open(path).unwrap();
                         let mut buf = BufReader::new(file);
                         match slimeball_lib::SlimeWorld::deserialize(&mut buf) {
-                            Ok(v) => debug!("{:#?}", v),
+                            // TODO: async?
+                            Ok(v) => proto::load_chunk_tops(v),
                             Err(why) => error!("{:?}", why),
                         }
                     }
@@ -112,6 +114,8 @@ impl SlimeballGui {
                 });
             });
 
-        egui::CentralPanel::default().show(ui, |ui| ui.heading(world_path.to_string_lossy()));
+        egui::CentralPanel::default().show(ui, |ui| {
+            ui.heading(world_path.to_string_lossy());
+        });
     }
 }

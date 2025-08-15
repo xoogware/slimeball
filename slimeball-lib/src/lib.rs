@@ -34,7 +34,7 @@ pub struct Chunk {
 pub struct Section {
     pub sky_light: Option<Vec<u8>>,
     pub block_light: Option<Vec<u8>>,
-    pub block_states: BlockStates,
+    pub block_states: PalettedContainer<4096, BlockState>,
     // FIXME: use strong type
     pub biomes: fastnbt::Value,
 }
@@ -170,7 +170,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
             };
 
             debug!("reading block states");
-            let block_states: BlockStates = read_sized(buf)?;
+            let block_states: PalettedContainer<4096, BlockState> = read_sized(buf)?;
             debug!("{:?}", block_states);
             debug!("reading biomes");
             let biomes: fastnbt::Value = read_sized(buf)?;
@@ -264,14 +264,46 @@ fn read_sized<T: serde::de::DeserializeOwned>(buf: &mut impl Read) -> Result<T> 
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct BlockStates {
-    palette: Vec<BlockState>,
-    data: Option<fastnbt::LongArray>,
+#[serde(rename_all = "PascalCase")]
+pub struct BlockState {
+    pub name: String,
+    pub properties: Option<HashMap<String, fastnbt::Value>>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "PascalCase")]
-pub struct BlockState {
-    name: String,
-    properties: Option<HashMap<String, fastnbt::Value>>,
+pub struct PalettedContainer<const SIZE: usize, T> {
+    pub palette: Vec<T>,
+    pub data: Option<fastnbt::LongArray>,
+}
+
+// TODO: move this stuff to a different package as it's shared between Anvil and Slime
+impl<const SIZE: usize, T> PalettedContainer<SIZE, T> {
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if self.palette.len() == 1 {
+            return self.palette.get(0);
+        }
+
+        if index >= SIZE {
+            panic!("index {index} outside range for PalettedContainer of size {SIZE}");
+        }
+
+        // All indices are the same length. This length is set to the minimum amount
+        // of bits required to represent the largest index in the palette, and then
+        // set to a minimum size of 4 bits.
+        let index_len: usize = self.palette.len().ilog2().try_into().unwrap();
+
+        debug!(
+            "Using index length {index_len} for palette with {} items",
+            self.palette.len()
+        );
+
+        // this can almost certainly be optimized but i just want something working for now
+        let indices_per_long = 64 / index_len;
+        let index_long = index / indices_per_long;
+        let index_bit_pos = 64 - (index % indices_per_long);
+        let mask = ((1 << index_len) - 1) << (index_bit_pos - index_len);
+        let true_index = ((self.data.as_ref().unwrap()[index_long] & mask)
+            >> (index_bit_pos - index_len)) as usize;
+        self.palette.get(true_index)
+    }
 }
