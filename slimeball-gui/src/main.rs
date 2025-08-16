@@ -5,6 +5,7 @@ use mimalloc::MiMalloc;
 use rfd::FileDialog;
 use tracing::Level;
 use tracing_subscriber::{EnvFilter, prelude::*};
+use viewer::Viewer;
 
 #[macro_use]
 extern crate tracing;
@@ -44,6 +45,7 @@ enum World {
 #[derive(Default)]
 struct SlimeballGui {
     world: Option<World>,
+    viewer: Viewer,
 }
 
 impl eframe::App for SlimeballGui {
@@ -115,7 +117,7 @@ impl SlimeballGui {
             });
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading(world_path.to_string_lossy());
+            self.viewer.draw(ui);
         });
     }
 }

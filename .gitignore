@@ -1,1 +1,17 @@
-/target
+# i love allowlist gitignores
+*
+
+!.gitignore
+
+!README.md
+
+!/slimeball-gui
+!/slimeball-lib
+
+!**/Cargo.toml
+!**/Cargo.lock
+
+!**/src
+!**/src/**/*.rs
+
+!/slimeball-lib/SPEC.md
