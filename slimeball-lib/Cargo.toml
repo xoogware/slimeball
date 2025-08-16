@@ -2,10 +2,13 @@
 name = "slimeball-lib"
 version = "0.1.0"
 edition = "2024"
+license = "MPL2.0"
+keywords = ["minecraft", "slime"]
+categories = ["game-development"]
 
 [dependencies]
 byteorder = "1.5.0"
-fastnbt = { git = "https://github.com/owengage/fastnbt.git" }
+fastnbt = "2.5.0"
 serde = "1.0.219"
 thiserror = "2.0.12"
 tracing = "0.1.41"

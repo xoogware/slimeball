@@ -229,7 +229,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
                 debug!("Loading remaining compound tag size {extra_size} bytes");
                 let mut bytebuf = vec![0u8; extra_size.try_into().unwrap()];
                 buf.read_exact(&mut bytebuf)?;
-                let extra = fastnbt::from_reader_with_opts(&*bytebuf, fastnbt::DeOpts::default())?;
+                let extra = fastnbt::from_bytes(&*bytebuf)?;
                 debug!("extra: {extra:?}");
                 Some(extra)
             }
@@ -257,10 +257,7 @@ fn read_sized<T: serde::de::DeserializeOwned>(buf: &mut impl Read) -> Result<T> 
     debug!("loading nbt, size {size} bytes");
     let mut bytebuf = vec![0u8; size.try_into().unwrap()];
     buf.read_exact(&mut bytebuf)?;
-    Ok(fastnbt::from_reader_with_opts(
-        &*bytebuf,
-        fastnbt::DeOpts::default(),
-    )?)
+    Ok(fastnbt::from_bytes(&*bytebuf)?)
 }
 
 #[derive(Deserialize, Debug, Clone)]
