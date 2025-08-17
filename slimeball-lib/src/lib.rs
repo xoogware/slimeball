@@ -24,10 +24,16 @@ pub struct Chunk {
     pub poi_chunks: Option<fastnbt::Value>,
     pub block_ticks: Option<fastnbt::Value>,
     pub fluid_ticks: Option<fastnbt::Value>,
-    pub tile_entities: fastnbt::Value,
+    pub tile_entities: Vec<fastnbt::Value>,
     pub entities: fastnbt::Value,
     // but leave this as Value
     pub extra: Option<fastnbt::Value>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TileEntities {
+    tile_entities: Vec<fastnbt::Value>,
 }
 
 #[derive(Clone, Debug)]
@@ -219,7 +225,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
             buf.read_exact(&mut extra_buf)?;
         }
 
-        let tile_entities: fastnbt::Value = read_sized(buf)?;
+        let tile_entities = read_sized::<TileEntities>(buf)?.tile_entities;
         let entities: fastnbt::Value = read_sized(buf)?;
 
         let extra_size = buf.read_i32::<BigEndian>()?;
