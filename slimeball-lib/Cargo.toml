@@ -2,9 +2,11 @@
 name = "slimeball-lib"
 version = "0.1.0"
 edition = "2024"
-license = "MPL2.0"
+license = "MPL-2.0"
 keywords = ["minecraft", "slime"]
 categories = ["game-development"]
+description = "A Rust crate for loading and saving Slime worlds"
+repository = "https://github.com/xoogware/slimeball"
 
 [dependencies]
 byteorder = "1.5.0"
