@@ -10,7 +10,7 @@ repository = "https://github.com/xoogware/slimeball"
 
 [dependencies]
 byteorder = "1.5.0"
-fastnbt = "2.5.0"
+fastnbt = { git = "https://github.com/owengage/fastnbt" }
 serde = "1.0.219"
 thiserror = "2.0.12"
 tracing = "0.1.41"
