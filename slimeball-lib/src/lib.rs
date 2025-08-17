@@ -264,7 +264,8 @@ fn read_sized<T: serde::de::DeserializeOwned>(buf: &mut impl Read) -> Result<T> 
 #[serde(rename_all = "PascalCase")]
 pub struct BlockState {
     pub name: String,
-    pub properties: Option<HashMap<String, fastnbt::Value>>,
+    #[serde(default)]
+    pub properties: HashMap<String, String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
