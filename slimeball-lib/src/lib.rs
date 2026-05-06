@@ -55,19 +55,19 @@ impl From<u8> for WorldFlags {
 }
 
 impl WorldFlags {
-    const fn poi_chunks(&self) -> bool {
+    const fn poi_chunks(self) -> bool {
         self.0 & 1 == 1
     }
 
-    const fn fluid_ticks(&self) -> bool {
+    const fn fluid_ticks(self) -> bool {
         self.0 & 2 == 2
     }
 
-    const fn block_ticks(&self) -> bool {
+    const fn block_ticks(self) -> bool {
         self.0 & 4 == 4
     }
 
-    const fn other_flag_count(&self) -> u32 {
+    const fn other_flag_count(self) -> u32 {
         self.0.count_ones()
             - (self.poi_chunks() as u32)
             - (self.fluid_ticks() as u32)
