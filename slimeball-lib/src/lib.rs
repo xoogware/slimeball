@@ -55,19 +55,19 @@ impl From<u8> for WorldFlags {
 }
 
 impl WorldFlags {
-    const fn poi_chunks(&self) -> bool {
+    const fn poi_chunks(self) -> bool {
         self.0 & 1 == 1
     }
 
-    const fn fluid_ticks(&self) -> bool {
+    const fn fluid_ticks(self) -> bool {
         self.0 & 2 == 2
     }
 
-    const fn block_ticks(&self) -> bool {
+    const fn block_ticks(self) -> bool {
         self.0 & 4 == 4
     }
 
-    const fn other_flag_count(&self) -> u32 {
+    const fn other_flag_count(self) -> u32 {
         self.0.count_ones()
             - (self.poi_chunks() as u32)
             - (self.fluid_ticks() as u32)
@@ -127,16 +127,18 @@ fn read_compressed(buf: &mut impl BufRead) -> Result<Vec<u8>> {
 
     let mut compressed = vec![0; compressed_chunks_size];
     buf.read_exact(&mut compressed)?;
-    let decoded = zstd::decode_all(&*compressed)?;
 
-    if decoded.len() != uncompressed_chunks_size {
+    let mut uncompressed = Vec::with_capacity(uncompressed_chunks_size);
+    zstd::stream::copy_decode(&*compressed, &mut uncompressed)?;
+
+    if uncompressed.len() != uncompressed_chunks_size {
         return Err(Error::DecompressSize(
             uncompressed_chunks_size,
-            decoded.len(),
+            uncompressed.len(),
         ));
     }
 
-    Ok(decoded)
+    Ok(uncompressed)
 }
 
 fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk>> {
@@ -148,16 +150,19 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
         let z = buf.read_i32::<BigEndian>()?;
 
         let section_count = buf.read_i32::<BigEndian>()?;
-        debug!("chunk {x}, {z}: {section_count} sections");
+        debug!(
+            "Chunk {}/{chunks_to_read} at {x}, {z}: {section_count} sections",
+            chunk_index + 1
+        );
 
         let mut sections = Vec::with_capacity(section_count.try_into().unwrap());
         for section in 0..section_count {
             let flags = buf.read_u8()?;
-            debug!("flags for section {section}: {flags}");
+            debug!("Flags for section {section}: {flags}");
 
             let sky_light = match flags & 1 {
                 1 => {
-                    debug!("reading skylight");
+                    debug!("Reading skylight");
                     let mut sky_light = vec![0; 2048];
                     buf.read_exact(&mut sky_light)?;
                     Some(sky_light)
@@ -167,7 +172,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
 
             let block_light = match flags & 2 {
                 2 => {
-                    debug!("reading blocklight");
+                    debug!("Reading blocklight");
                     let mut block_light = vec![0; 2048];
                     buf.read_exact(&mut block_light)?;
                     Some(block_light)
@@ -175,10 +180,10 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
                 _ => None,
             };
 
-            debug!("reading block states");
+            debug!("Reading block states");
             let block_states: PalettedContainer<4096, BlockState> = read_sized(buf)?;
             debug!("{:?}", block_states);
-            debug!("reading biomes");
+            debug!("Reading biomes");
             let biomes: fastnbt::Value = read_sized(buf)?;
             debug!("{:?}", biomes);
 
@@ -187,10 +192,10 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
                 block_light,
                 block_states,
                 biomes,
-            })
+            });
         }
 
-        debug!("reading heightmaps");
+        debug!("Reading heightmaps");
         let heightmaps: fastnbt::Value = read_sized(buf)?;
 
         let poi_chunks = match world_flags.poi_chunks() {
@@ -235,8 +240,8 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
                 debug!("Loading remaining compound tag size {extra_size} bytes");
                 let mut bytebuf = vec![0u8; extra_size.try_into().unwrap()];
                 buf.read_exact(&mut bytebuf)?;
-                let extra = fastnbt::from_bytes(&*bytebuf)?;
-                debug!("extra: {extra:?}");
+                let extra = fastnbt::from_bytes(&bytebuf)?;
+                debug!("Extra: {extra:?}");
                 Some(extra)
             }
         };
@@ -252,7 +257,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
             tile_entities,
             entities,
             extra,
-        })
+        });
     }
 
     Ok(chunks)
@@ -260,10 +265,10 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
 
 fn read_sized<T: serde::de::DeserializeOwned>(buf: &mut impl Read) -> Result<T> {
     let size = buf.read_i32::<BigEndian>()?;
-    debug!("loading nbt, size {size} bytes");
+    debug!("Loading nbt, size {size} bytes");
     let mut bytebuf = vec![0u8; size.try_into().unwrap()];
     buf.read_exact(&mut bytebuf)?;
-    Ok(fastnbt::from_bytes(&*bytebuf)?)
+    Ok(fastnbt::from_bytes(&bytebuf)?)
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -283,13 +288,14 @@ pub struct PalettedContainer<const SIZE: usize, T> {
 // TODO: move this stuff to a different package as it's shared between Anvil and Slime
 impl<const SIZE: usize, T> PalettedContainer<SIZE, T> {
     pub fn get(&self, index: usize) -> Option<&T> {
-        if self.palette.len() == 1 {
-            return self.palette.get(0);
+        if let [only] = self.palette.as_slice() {
+            return Some(only);
         }
 
-        if index >= SIZE {
-            panic!("index {index} outside range for PalettedContainer of size {SIZE}");
-        }
+        assert!(
+            index < SIZE,
+            "Index {index} outside range for PalettedContainer of size {SIZE}"
+        );
 
         // All indices are the same length. This length is set to the minimum amount
         // of bits required to represent the largest index in the palette, and then
