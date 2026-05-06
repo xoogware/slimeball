@@ -189,7 +189,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
                 block_light,
                 block_states,
                 biomes,
-            })
+            });
         }
 
         debug!("reading heightmaps");
@@ -254,7 +254,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
             tile_entities,
             entities,
             extra,
-        })
+        });
     }
 
     Ok(chunks)
