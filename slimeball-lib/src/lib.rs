@@ -127,16 +127,18 @@ fn read_compressed(buf: &mut impl BufRead) -> Result<Vec<u8>> {
 
     let mut compressed = vec![0; compressed_chunks_size];
     buf.read_exact(&mut compressed)?;
-    let decoded = zstd::decode_all(&*compressed)?;
 
-    if decoded.len() != uncompressed_chunks_size {
+    let mut uncompressed = Vec::with_capacity(uncompressed_chunks_size);
+    zstd::stream::copy_decode(&*compressed, &mut uncompressed)?;
+
+    if uncompressed.len() != uncompressed_chunks_size {
         return Err(Error::DecompressSize(
             uncompressed_chunks_size,
-            decoded.len(),
+            uncompressed.len(),
         ));
     }
 
-    Ok(decoded)
+    Ok(uncompressed)
 }
 
 fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk>> {
