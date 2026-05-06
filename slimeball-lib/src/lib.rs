@@ -285,13 +285,14 @@ pub struct PalettedContainer<const SIZE: usize, T> {
 // TODO: move this stuff to a different package as it's shared between Anvil and Slime
 impl<const SIZE: usize, T> PalettedContainer<SIZE, T> {
     pub fn get(&self, index: usize) -> Option<&T> {
-        if self.palette.len() == 1 {
-            return self.palette.get(0);
+        if let [only] = self.palette.as_slice() {
+            return Some(only);
         }
 
-        if index >= SIZE {
-            panic!("index {index} outside range for PalettedContainer of size {SIZE}");
-        }
+        assert!(
+            index < SIZE,
+            "index {index} outside range for PalettedContainer of size {SIZE}"
+        );
 
         // All indices are the same length. This length is set to the minimum amount
         // of bits required to represent the largest index in the palette, and then
