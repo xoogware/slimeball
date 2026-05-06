@@ -158,11 +158,11 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
         let mut sections = Vec::with_capacity(section_count.try_into().unwrap());
         for section in 0..section_count {
             let flags = buf.read_u8()?;
-            debug!("flags for section {section}: {flags}");
+            debug!("Flags for section {section}: {flags}");
 
             let sky_light = match flags & 1 {
                 1 => {
-                    debug!("reading skylight");
+                    debug!("Reading skylight");
                     let mut sky_light = vec![0; 2048];
                     buf.read_exact(&mut sky_light)?;
                     Some(sky_light)
@@ -172,7 +172,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
 
             let block_light = match flags & 2 {
                 2 => {
-                    debug!("reading blocklight");
+                    debug!("Reading blocklight");
                     let mut block_light = vec![0; 2048];
                     buf.read_exact(&mut block_light)?;
                     Some(block_light)
@@ -180,10 +180,10 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
                 _ => None,
             };
 
-            debug!("reading block states");
+            debug!("Reading block states");
             let block_states: PalettedContainer<4096, BlockState> = read_sized(buf)?;
             debug!("{:?}", block_states);
-            debug!("reading biomes");
+            debug!("Reading biomes");
             let biomes: fastnbt::Value = read_sized(buf)?;
             debug!("{:?}", biomes);
 
@@ -195,7 +195,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
             });
         }
 
-        debug!("reading heightmaps");
+        debug!("Reading heightmaps");
         let heightmaps: fastnbt::Value = read_sized(buf)?;
 
         let poi_chunks = match world_flags.poi_chunks() {
@@ -241,7 +241,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
                 let mut bytebuf = vec![0u8; extra_size.try_into().unwrap()];
                 buf.read_exact(&mut bytebuf)?;
                 let extra = fastnbt::from_bytes(&bytebuf)?;
-                debug!("extra: {extra:?}");
+                debug!("Extra: {extra:?}");
                 Some(extra)
             }
         };
@@ -265,7 +265,7 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
 
 fn read_sized<T: serde::de::DeserializeOwned>(buf: &mut impl Read) -> Result<T> {
     let size = buf.read_i32::<BigEndian>()?;
-    debug!("loading nbt, size {size} bytes");
+    debug!("Loading nbt, size {size} bytes");
     let mut bytebuf = vec![0u8; size.try_into().unwrap()];
     buf.read_exact(&mut bytebuf)?;
     Ok(fastnbt::from_bytes(&bytebuf)?)
@@ -294,7 +294,7 @@ impl<const SIZE: usize, T> PalettedContainer<SIZE, T> {
 
         assert!(
             index < SIZE,
-            "index {index} outside range for PalettedContainer of size {SIZE}"
+            "Index {index} outside range for PalettedContainer of size {SIZE}"
         );
 
         // All indices are the same length. This length is set to the minimum amount
