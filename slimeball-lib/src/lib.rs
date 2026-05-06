@@ -150,7 +150,10 @@ fn read_chunks(buf: &mut impl Read, world_flags: WorldFlags) -> Result<Vec<Chunk
         let z = buf.read_i32::<BigEndian>()?;
 
         let section_count = buf.read_i32::<BigEndian>()?;
-        debug!("chunk {x}, {z}: {section_count} sections");
+        debug!(
+            "Chunk {}/{chunks_to_read} at {x}, {z}: {section_count} sections",
+            chunk_index + 1
+        );
 
         let mut sections = Vec::with_capacity(section_count.try_into().unwrap());
         for section in 0..section_count {
